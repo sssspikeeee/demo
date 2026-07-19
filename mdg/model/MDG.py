@@ -6,8 +6,6 @@ from .EdgeAtt import EdgeAtt
 from .GNN import GNN
 from .Predictor import Predictor
 from .functions import batch_graphify
-from .CrossModalFusion import CrossModalFusion
-from .GCA  import GCA
 from .STMA import SymmetricTriModalAttention
 import mdg
 
@@ -67,12 +65,9 @@ class MDG(nn.Module):
         self.rnn_a = SeqContext(u_dim_a, g_dim, args)
         self.rnn_v = SeqContext(u_dim_v, g_dim, args)
         self.rnn_t = SeqContext(u_dim_t, g_dim, args)
-        self.CMFM = CrossModalFusion(g_dim, g_dim, g_dim)
+
         self.mmattn = MulMoAttn(g_dim, args)
-        self.GCA = GCA(g_dim, n_head)
         self.STMA = SymmetricTriModalAttention(g_dim, n_head)
-        self.iAFF = SeqIAFF(dim=g_dim*3, r=4, dropout=args.drop_rate, use_layernorm=True)
-        self.HSTMA = HierarchicalSymmetricTriModalAttention(g_dim, n_head)
         
         self.edge_att = EdgeAtt(g_dim*3, args)
         self.gnn = GNN(g_dim*3, h1_dim, h2_dim, n_head, args)
@@ -103,30 +98,9 @@ class MDG(nn.Module):
         # 拼接
         # node_features = torch.cat((node_features_T, node_features_A, node_features_V), 2)
 
-        '''
-        # CA
-        node_features_A_att = self.mmattn(node_features_V, node_features_A)
-        node_features_V_att = self.mmattn(node_features_A, node_features_V)
-        node_features_T_att = self.mmattn(node_features_T, node_features_T)
-        node_features = torch.cat((node_features_T_att, node_features_A_att, node_features_V_att), 2)
-
-        # 多层CA
-        node_features_AV = self.CMFM(node_features_A, node_features_V)
-        node_features_VT = self.CMFM(node_features_V, node_features_T)
-        node_features_AT = self.CMFM(node_features_A, node_features_T)
-        node_features = torch.cat((node_features_AV, node_features_VT, node_features_AT), 2)
-        node_features_AVT = self.CMFM(node_features_AV, node_features_T)
-        node_features_VTA = self.CMFM(node_features_VT, node_features_A)
-        node_features_ATV = self.CMFM(node_features_AT, node_features_V)
-        node_features = torch.cat((node_features_AVT, node_features_VTA, node_features_ATV), 2)
-
-        # GCA
-        node_features = self.GCA(node_features_A, node_features_V, node_features_T)
-        '''
     
         # STMA
         node_features_newT, node_features_newA, node_features_newV = self.STMA(node_features_T, node_features_A, node_features_V)
-        # node_features_newT, node_features_newA, node_features_newV = self.HSTMA(node_features_T, node_features_A, node_features_V)
         node_features = torch.cat((node_features_newT, node_features_newA, node_features_newV), 2)
 
 
