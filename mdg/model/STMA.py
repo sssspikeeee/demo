@@ -28,45 +28,28 @@ class MulMoAttn(nn.Module):
 class SymmetricTriModalAttention(nn.Module):
     def __init__(self, dim, heads=4):
         super().__init__()
-        self.attn = nn.MultiheadAttention(dim, heads, batch_first=True)
         self.mmattn = MulMoAttn(dim)
 
-        self.gate = nn.ModuleDict({
-            "T_A": nn.Linear(dim, dim),
-            "T_V": nn.Linear(dim, dim),
-            "A_T": nn.Linear(dim, dim),
-            "A_V": nn.Linear(dim, dim),
-            "V_T": nn.Linear(dim, dim),
-            "V_A": nn.Linear(dim, dim),
-        })
 
-        self.norm = nn.LayerNorm(dim)
-
-    def gated_attn(self, Q, K, V, gate_layer):
-        # C, _ = self.attn(Q, K, V)
+    def attn(self, Q, K, V, gate_layer):
         C = self.mmattn(Q, K)
-        # gate = torch.sigmoid(gate_layer(Q))
-        # return C * gate
         return C
 
     def forward(self, H_t, H_a, H_v):
         # Text updates
-        T_A = self.gated_attn(H_t, H_a, H_a, self.gate["T_A"])
-        T_V = self.gated_attn(H_t, H_v, H_v, self.gate["T_V"])
+        T_A = self.attn(H_t, H_a, H_a, self.gate["T_A"])
+        T_V = self.attn(H_t, H_v, H_v, self.gate["T_V"])
         H_t_new = H_t + T_A + T_V
-        # H_t_new = self.norm(H_t_new)
 
         # Audio updates
-        A_T = self.gated_attn(H_a, H_t, H_t, self.gate["A_T"])
-        A_V = self.gated_attn(H_a, H_v, H_v, self.gate["A_V"])
+        A_T = self.attn(H_a, H_t, H_t, self.gate["A_T"])
+        A_V = self.attn(H_a, H_v, H_v, self.gate["A_V"])
         H_a_new = H_a + A_T + A_V
-        # H_a_new = self.norm(H_a_new)
 
         # Video updates
-        V_T = self.gated_attn(H_v, H_t, H_t, self.gate["V_T"])
-        V_A = self.gated_attn(H_v, H_a, H_a, self.gate["V_A"])
+        V_T = self.attn(H_v, H_t, H_t, self.gate["V_T"])
+        V_A = self.attn(H_v, H_a, H_a, self.gate["V_A"])
         H_v_new = H_v + V_T + V_A
-        # H_v_new = self.norm(H_v_new)
 
         return H_t_new, H_a_new, H_v_new
 
