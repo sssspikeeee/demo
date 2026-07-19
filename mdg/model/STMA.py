@@ -31,24 +31,24 @@ class SymmetricTriModalAttention(nn.Module):
         self.mmattn = MulMoAttn(dim)
 
 
-    def attn(self, Q, K, V, gate_layer):
+    def attn(self, Q, K, V):
         C = self.mmattn(Q, K)
         return C
 
     def forward(self, H_t, H_a, H_v):
         # Text updates
-        T_A = self.attn(H_t, H_a, H_a, self.gate["T_A"])
-        T_V = self.attn(H_t, H_v, H_v, self.gate["T_V"])
+        T_A = self.attn(H_t, H_a, H_a)
+        T_V = self.attn(H_t, H_v, H_v)
         H_t_new = H_t + T_A + T_V
 
         # Audio updates
-        A_T = self.attn(H_a, H_t, H_t, self.gate["A_T"])
-        A_V = self.attn(H_a, H_v, H_v, self.gate["A_V"])
+        A_T = self.attn(H_a, H_t, H_t)
+        A_V = self.attn(H_a, H_v, H_v)
         H_a_new = H_a + A_T + A_V
 
         # Video updates
-        V_T = self.attn(H_v, H_t, H_t, self.gate["V_T"])
-        V_A = self.attn(H_v, H_a, H_a, self.gate["V_A"])
+        V_T = self.attn(H_v, H_t, H_t)
+        V_A = self.attn(H_v, H_a, H_a)
         H_v_new = H_v + V_T + V_A
 
         return H_t_new, H_a_new, H_v_new
