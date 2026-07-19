@@ -1,0 +1,5 @@
+python preprocess.py --data=.\data\data.pkl  --dataset=avec
+
+python train.py --data=.\data\data.pkl --from_begin --device=cuda --epochs=500 --batch_size=50 --seed=2025
+
+python prediction.py --data=.\data\data.pkl --device=cuda --batch_size=50
